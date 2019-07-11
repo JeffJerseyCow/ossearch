@@ -32,53 +32,50 @@ class GraphTree:
 
     def get_parents(self, nodes: List[Node]) -> Set[Vertex]:
         parents = set()
+        digests = [node.get_digest() if node.is_file() else None
+                   for node in nodes]
 
-        for node in nodes:
-            file_vertices = self.__g.V().has('file', 'digest', node.get_digest()).toList()
-            for file_vertex in file_vertices:
-                parents.add(self.__g.V(file_vertex).out('parent').dedup().toList()[0])
+        vertices = self.__g.V().hasLabel('file').as_('file')\
+            .values('digest').as_('digest')\
+            .select('file').out('parent').as_('parent')\
+            .select('digest', 'parent').toList()
+
+        for vertex in vertices:
+            if vertex['digest'] in digests:
+                parents.add(vertex['parent'])
 
         return parents
 
-    def add_node(self, node: Node) -> bool:
+    def add_node(self, node: Node) -> Vertex:
         v = None
 
-        try:
-            # node is file
-            if node.is_file():
-                file_vertex = self.__g.addV('file') \
-                    .property('name', node.get_name()) \
-                    .property('path', node.get_path()) \
-                    .property('digest', node.get_digest()) \
-                    .property('type', node.get_type()) \
-                    .next()
-                v = file_vertex
+        # node is file
+        if node.is_file():
+            file_vertex = self.__g.addV('file') \
+                .property('name', node.get_name()) \
+                .property('path', node.get_path()) \
+                .property('digest', node.get_digest()) \
+                .property('type', node.get_type()) \
+                .next()
+            v = file_vertex
 
-            # node is directory
-            else:
-                directory_vertex = self.__g.addV('directory') \
-                    .property('name', node.get_name()) \
-                    .property('path', node.get_path()) \
-                    .property('type', node.get_type()) \
-                    .next()
-                v = directory_vertex
+        # node is directory
+        else:
+            directory_vertex = self.__g.addV('directory') \
+                .property('name', node.get_name()) \
+                .property('path', node.get_path()) \
+                .property('type', node.get_type()) \
+                .next()
+            v = directory_vertex
 
-            # get parent
-            p = self.__get_parent(node)
-            if p:
-                self.__g.V(v).addE('parent').to(p).next()
+        return v
 
-        # prevent race condition
-        except KeyboardInterrupt:
-            v = self.__g.V().has('name', node.get_name()).toList()
-
-            # delete node if added
-            if len(v) > 0:
-                self.__g.V(v[0]).drop().toList()
-                print(f'Deleted vertex \'{node.get_path()}\'')
-
-            print('Exiting')
-            sys.exit(False)
+    def add_edges(self, vertices: Dict[str, Tuple[Vertex, str, bool]]) -> bool:
+        for path, tup in vertices.items():
+            if not tup[2]:
+                self.__g.V(tup[0]).addE('parent').to(
+                    vertices[tup[1]][0]
+                ).next()
 
         return True
 

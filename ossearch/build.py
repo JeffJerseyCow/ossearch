@@ -36,12 +36,18 @@ def build_main(args: Namespace) -> bool:
         return False
 
     # add nodes to database
+    print('Creating vertices')
+    vertices = {}
     for node in walk_directory(path):
         n = Node(name=node['name'], path=node['path'], parent=node['parent'], type=node['type'],
                  digest=node['digest'])
 
-        if not gt.add_node(n):
-            log.warning(f'Cannot add node {n.get_name()} to database')
+        # collect vertices
+        vertices[n.get_path()] = (gt.add_node(n), n.get_parent(), n.get_path() == path)
+
+    # add edges
+    print('Adding edges')
+    gt.add_edges(vertices)
 
     print(f'Successfully created tree {path}')
     return True

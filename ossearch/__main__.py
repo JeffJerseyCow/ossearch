@@ -31,6 +31,7 @@ def main() -> bool:
             return False
 
     except KeyboardInterrupt:
+        print('If building the database MUST be purged')
         print('Exiting')
         return False
 

@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 import socket
 from argparse import Namespace
@@ -41,7 +42,6 @@ def search_main(args: Namespace) -> bool:
                       digest=node['digest'])
                       for node in walk_files(path)]
 
-        # get parents
         parents = gt.get_parents(file_nodes)
         if len(parents) < 1:
             print(f'No candidates for {path} found')
@@ -61,10 +61,12 @@ def search_main(args: Namespace) -> bool:
             # percentage of nodes in database found in file directory
             percentage_database_file = len(matches) / len(file_nodes) * 100
 
-            if percentage_file_database > args.threshold and percentage_database_file > args.threshold:
+            # average out difference
+            percentage_average = (percentage_database_file + percentage_file_database) / 2
+
+            if percentage_average >= args.threshold:
                 print(f'Found candidate {root_path}')
-                print(f'\t{percentage_file_database:.2f}% files found in database')
-                print(f'\t{percentage_database_file:.2f}% database nodes found directory')
+                print(f'\t{percentage_average:.2f}% match')
                 print(f'\tReference: {path}')
 
     return True

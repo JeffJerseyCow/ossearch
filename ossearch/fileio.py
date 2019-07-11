@@ -38,7 +38,10 @@ def walk_directory(path: str, exclude_null: bool) -> Dict[str, str]:
         }
 
         for filename in filelist:
+            # check file exists
             filepath = os.path.join(dirpath, filename)
+            if not os.path.exists(filepath):
+                continue
 
             # exclude null files
             digest = get_digest(filepath)

@@ -18,15 +18,20 @@ def main() -> bool:
     parser = get_parser(config)
     args = parser.parse_args()
 
-    # select action
-    if args.command == 'build':
-        return build_main(args)
-    elif args.command == 'search':
-        return search_main(args)
-    elif args.command == 'delete':
-        return delete_main(args)
-    else:
-        parser.print_usage()
+    try:
+        # select action
+        if args.command == 'build':
+            return build_main(args)
+        elif args.command == 'search':
+            return search_main(args)
+        elif args.command == 'delete':
+            return delete_main(args)
+        else:
+            parser.print_usage()
+            return False
+
+    except KeyboardInterrupt:
+        print('Exiting')
         return False
 
 

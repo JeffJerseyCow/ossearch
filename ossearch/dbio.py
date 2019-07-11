@@ -1,7 +1,8 @@
+import sys
 import logging
-from typing import Union, List, Set, Dict
+from typing import Union, List, Set, Dict, Tuple
 from gremlin_python.process.anonymous_traversal import traversal
-from gremlin_python.process.graph_traversal import GraphTraversalSource, __
+from gremlin_python.process.graph_traversal import __
 from gremlin_python.structure.graph import Vertex
 from gremlin_python.process.strategies import *
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
@@ -11,112 +12,129 @@ from ossearch.node import Node
 log = logging.getLogger('ossearch')
 
 
-def connect(server: str) -> GraphTraversalSource:
-    return traversal().withRemote(DriverRemoteConnection(f'ws://{server}/gremlin', 'g'))
+class GraphTree:
+    __g = None
+    __root_vertex = None
 
+    def connect(self, server: str) -> bool:
+        self.__g = traversal().withRemote(DriverRemoteConnection(f'ws://{server}/gremlin', 'g'))
+        return True
 
-def get_root_n(g: GraphTraversalSource, node: Node) -> Union[bool, Vertex]:
-    root_vertices = g.V().has('directory', 'name', node.get_name()).toList()
+    def set_root(self, node: Node) -> bool:
+        root_vertices = self.__g.V().has('directory', 'name', node.get_name()).toList()
 
-    # root node exists
-    if len(root_vertices) < 1:
-        return False
+        # root node exists
+        if len(root_vertices) < 1:
+            return False
 
-    return root_vertices[0]
+        self.__root_vertex = root_vertices[0]
+        return True
 
+    def get_parents(self, nodes: List[Node]) -> Set[Vertex]:
+        parents = set()
 
-def get_parent_n(g: GraphTraversalSource, node: Node) -> Union[Vertex, bool]:
-    parent_vertices = g.V().has('directory', 'name', node.get_parent()).toList()
+        for node in nodes:
+            file_vertices = self.__g.V().has('file', 'digest', node.get_digest()).toList()
+            for file_vertex in file_vertices:
+                parents.add(self.__g.V(file_vertex).out('parent').dedup().toList()[0])
 
-    # doesn't have parent
-    if len(parent_vertices) < 1:
-        return False
+        return parents
 
-    return parent_vertices[0]
+    def add_node(self, node: Node) -> bool:
+        v = None
 
+        try:
+            # node is file
+            if node.is_file():
+                file_vertex = self.__g.addV('file') \
+                    .property('name', node.get_name()) \
+                    .property('path', node.get_path()) \
+                    .property('digest', node.get_digest()) \
+                    .property('type', node.get_type()) \
+                    .next()
+                v = file_vertex
 
-def get_parents_n(g: GraphTraversalSource, nodes: List[Node]) -> Set[Vertex]:
-    parents = set()
+            # node is directory
+            else:
+                directory_vertex = self.__g.addV('directory') \
+                    .property('name', node.get_name()) \
+                    .property('path', node.get_path()) \
+                    .property('type', node.get_type()) \
+                    .next()
+                v = directory_vertex
 
-    for node in nodes:
-        file_vertices = g.V().has('file', 'digest', node.get_digest()).toList()
-        for file_vertex in file_vertices:
-            parents.add(g.V(file_vertex).out('parent').dedup().toList()[0])
+            # get parent
+            p = self.__get_parent(node)
+            if p:
+                self.__g.V(v).addE('parent').to(p).next()
 
-    return parents
+        # prevent race condition
+        except KeyboardInterrupt:
+            v = self.__g.V().has('name', node.get_name()).toList()
 
+            # delete node if added
+            if len(v) > 0:
+                self.__g.V(v[0]).drop().toList()
+                print(f'Deleted vertex \'{node.get_path()}\'')
 
-def add_node_n(g: GraphTraversalSource, node: Node) -> bool:
-    v = None
+            print('Exiting')
+            sys.exit(False)
 
-    # node is file
-    if node.is_file():
-        file_vertex = g.addV('file')\
-            .property('name', node.get_name())\
-            .property('path', node.get_path())\
-            .property('digest', node.get_digest())\
-            .property('type', node.get_type())\
-            .next()
-        v = file_vertex
+        return True
 
-    # node is directory
-    else:
-        directory_vertex = g.addV('directory')\
-            .property('name', node.get_name())\
-            .property('path', node.get_path())\
-            .property('type', node.get_type())\
-            .next()
-        v = directory_vertex
+    def delete_tree(self) -> bool:
+        # get root and children
+        self.__g.V(self.__root_vertex).emit().repeat(
+            __.in_('parent')
+        ).barrier().drop().toList()
+        return True
 
-    # get parent
-    p = get_parent_n(g, node)
-    if p:
-        g.V(v).addE('parent').to(p).next()
+    def get_vertex_properties(self, vertex: Vertex) -> Dict[str, str]:
+        properties = self.__g.V(vertex).valueMap().toList()
+        return properties[0]
 
-    return True
+    def get_subroots(self, vertices: Set[Vertex]) -> Set[Vertex]:
+        pruned_vertices = set()
 
+        for vertex in vertices:
+            parent_vertices = set(self.__g.V(vertex).repeat(
+                __.out('parent')
+            ).emit().toList())
 
-def delete_tree_n(g: GraphTraversalSource, node: Node) -> bool:
-    root_vertex = g.V().has('directory', 'name', node.get_name()).toList()
+            if len(vertices.intersection(parent_vertices)) < 1:
+                pruned_vertices.add(vertex)
 
-    # get root and children
-    g.V(root_vertex).emit().repeat(
-        __.in_('parent')
-    ).barrier().drop().toList()
+        return pruned_vertices
 
-    return True
+    def get_subtree_matches(self, nodes: List[Node], subroot: Vertex) -> Tuple[List[Vertex], List[Vertex]]:
+        matches = []
+        nonmatch = []
 
+        node_digests = [node.get_digest() for node in nodes]
 
-def get_vertex_properties_v(g: GraphTraversalSource, vertex: Vertex) -> Dict[str, str]:
-    properties = g.V(vertex).valueMap().toList()
+        child_vertices = self.__g.V(subroot).repeat(
+            __.in_('parent')
+        ).emit().toList()
 
-    return properties[0]
+        for child_vertex in child_vertices:
+            properties = self.get_vertex_properties(child_vertex)
 
+            # file node found in subtree
+            if properties['type'][0] == 'file' and properties['digest'][0] in node_digests:
+                matches.append(child_vertex)
+            elif properties['type'][0] == 'file':
+                nonmatch.append(child_vertex)
 
-def get_subroots_v(g: GraphTraversalSource, vertices: Set[Vertex]) -> Set[Vertex]:
-    pruned_vertices = set()
+        return matches, nonmatch
 
-    for vertex in vertices:
-        parent_vertices = set(g.V(vertex).repeat(
-                                __.out('parent')
-                              ).emit().toList())
+    def purge(self):
+        self.__g.V().drop().iterate()
 
-        if len(vertices.intersection(parent_vertices)) < 1:
-            pruned_vertices.add(vertex)
+    def __get_parent(self, node: Node) -> Union[Vertex, bool]:
+        parent_vertices = self.__g.V().has('directory', 'name', node.get_parent()).toList()
 
-    return pruned_vertices
+        # doesn't have parent
+        if len(parent_vertices) < 1:
+            return False
 
-
-def get_subtree_matches_nv(g: GraphTraversalSource, nodes: List[Node], root_vertex: Vertex) -> List[Vertex]:
-    matches = []
-    node_digests = [node.get_digest() for node in nodes]
-    child_vertices = g.V(root_vertex).repeat(
-                        __.in_('parent')
-                     ).emit().toList()
-
-    for child_vertex in child_vertices:
-        properties = get_vertex_properties_v(g, child_vertex)
-        if properties['type'][0] == 'file' and properties['digest'][0] in node_digests:
-            matches.append(child_vertex)
-
-    return matches
+        return parent_vertices[0]

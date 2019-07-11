@@ -1,0 +1,8 @@
+{
+  "baseDomain": "",
+  "version": "v1.1.0",
+  "plugins": ["jeff_config", "jeff_afl", "jeff_afl-ppc", "jeff_config",
+              "jeff_debug-ppc", "jeff_debug", "jeff_ikos", "jeff_libfuzzer",
+              "jeff_qsym"],
+  "containers": ["CONTAINERS"]
+}

@@ -3,7 +3,7 @@ import socket
 import logging
 from argparse import Namespace
 from ossearch.node import Node
-from ossearch.dbio import connect, get_root_n, add_node_n
+from ossearch.dbio import GraphTree
 from ossearch.fileio import check_directory, walk_directory
 
 
@@ -11,9 +11,11 @@ log = logging.getLogger('ossearch')
 
 
 def build_main(args: Namespace) -> bool:
+    gt = GraphTree()
+
     # connect to tinkerpop server
     try:
-        g = connect(args.server)
+        gt.connect(args.server)
     except ConnectionRefusedError:
         log.critical(f'Cannot connect to server {args.server}')
         return False
@@ -29,22 +31,17 @@ def build_main(args: Namespace) -> bool:
         return False
 
     # check root node exists
-    r = get_root_n(g, Node(name=path, path=path))
-    if r:
+    if gt.set_root(Node(name=path, path=path)):
         log.error(f'Root node {path} already exists in database')
         return False
 
     # add nodes to database
-    try:
-        for node in walk_directory(path):
-            n = Node(name=node['name'], path=node['path'], parent=node['parent'], type=node['type'],
-                     digest=node['digest'])
+    for node in walk_directory(path):
+        n = Node(name=node['name'], path=node['path'], parent=node['parent'], type=node['type'],
+                 digest=node['digest'])
 
-            if not add_node_n(g, n):
-                log.warning(f'Cannot add node {n.get_name()} to database')
+        if not gt.add_node(n):
+            log.warning(f'Cannot add node {n.get_name()} to database')
 
-    # catch manual exit
-    except KeyboardInterrupt:
-        print('Exiting build')
-
+    print(f'Successfully created tree {path}')
     return True

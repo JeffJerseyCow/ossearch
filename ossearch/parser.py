@@ -7,6 +7,7 @@ def add_build_args(subparser: argparse.ArgumentParser) -> bool:
     buildparser = subparser.add_parser('build')
     buildparser.add_argument('-d', '--directory', type=str, required=True, help='source code directory')
     buildparser.add_argument('-s', '--server', type=str, required=True, help='gremlin server string')
+    buildparser.add_argument('--include-null', action='store_true', help='include null files')
     return True
 
 
@@ -17,6 +18,7 @@ def add_search_args(subparser: argparse.ArgumentParser) -> bool:
     searchparser.add_argument('-s', '--server', type=str, required=True, help='gremlin server string')
     searchparser.add_argument('-t', '--threshold', type=int, default=10, help='threshold percentage for displaying'
                                                                               'matches')
+    searchparser.add_argument('--include-null', action='store_true', help='include null files')
     return True
 
 

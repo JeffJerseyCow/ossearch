@@ -40,7 +40,7 @@ def search_main(args: Namespace) -> bool:
         # build node list
         file_nodes = [Node(name=node['name'], path=node['path'], parent=node['parent'], type=node['type'],
                       digest=node['digest'])
-                      for node in walk_files(path)]
+                      for node in walk_files(path, not args.include_null)]
 
         parents = gt.get_parents(file_nodes)
         if len(parents) < 1:

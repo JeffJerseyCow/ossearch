@@ -38,7 +38,7 @@ def build_main(args: Namespace) -> bool:
     # add nodes to database
     print('Creating vertices')
     vertices = {}
-    for node in walk_directory(path):
+    for node in walk_directory(path, not args.include_null):
         n = Node(name=node['name'], path=node['path'], parent=node['parent'], type=node['type'],
                  digest=node['digest'])
 

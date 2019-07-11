@@ -21,13 +21,13 @@ def check_directory(directory: str) -> bool:
         return True
 
 
-def walk_files(path: str) -> Dict[str, str]:
-    for node in walk_directory(path):
+def walk_files(path: str, exclude_null: bool) -> Dict[str, str]:
+    for node in walk_directory(path, exclude_null):
         if node['type'] == 'file':
             yield node
 
 
-def walk_directory(path: str) -> Dict[str, str]:
+def walk_directory(path: str, exclude_null: bool) -> Dict[str, str]:
     for dirpath, _, filelist in os.walk(path):
         yield {
             'name': dirpath,
@@ -39,10 +39,16 @@ def walk_directory(path: str) -> Dict[str, str]:
 
         for filename in filelist:
             filepath = os.path.join(dirpath, filename)
+
+            # exclude null files
+            digest = get_digest(filepath)
+            if exclude_null and digest == 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855':
+                continue
+
             yield {
                 'name': filename,
                 'path': filepath,
-                'digest': get_digest(filepath),
+                'digest': digest,
                 'parent': dirpath,
                 'type': 'file'
             }

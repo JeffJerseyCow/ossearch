@@ -2,6 +2,7 @@ import os
 import logging
 import hashlib
 from typing import Dict
+from ossearch import BADHASH
 
 
 log = logging.getLogger('ossearch')
@@ -21,13 +22,13 @@ def check_directory(directory: str) -> bool:
         return True
 
 
-def walk_files(path: str, exclude_null: bool) -> Dict[str, str]:
-    for node in walk_directory(path, exclude_null):
+def walk_files(path: str, include_bad: bool) -> Dict[str, str]:
+    for node in walk_directory(path, include_bad):
         if node['type'] == 'file':
             yield node
 
 
-def walk_directory(path: str, exclude_null: bool) -> Dict[str, str]:
+def walk_directory(path: str, include_bad: bool) -> Dict[str, str]:
     for dirpath, _, filelist in os.walk(path):
         yield {
             'name': dirpath,
@@ -40,12 +41,18 @@ def walk_directory(path: str, exclude_null: bool) -> Dict[str, str]:
         for filename in filelist:
             # check file exists
             filepath = os.path.join(dirpath, filename)
-            if not os.path.exists(filepath):
+            if not os.path.isfile(filepath) and not os.path.isdir(filepath):
                 continue
 
-            # exclude null files
-            digest = get_digest(filepath)
-            if exclude_null and digest == 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855':
+            # IO exceptions
+            try:
+                digest = get_digest(filepath)
+            except PermissionError:
+                log.error(f'Cannot read {filepath} permission denied')
+                continue
+
+            # exclude bad files such as null
+            if not include_bad and digest in BADHASH:
                 continue
 
             yield {

@@ -13,15 +13,16 @@ def delete_main(args: Namespace) -> bool:
     gt = GraphTree()
 
     # connect to tinkerpop server
+    server = f'{args.address}:{args.port}'
     try:
-        gt.connect(args.server)
+        gt.connect(server)
     except ConnectionRefusedError:
-        log.critical(f'Cannot connect to server {args.server}')
+        log.critical(f'Cannot connect to server {server}')
         return False
     except socket.gaierror:
-        log.critical(f'Cannot parse server string {args.server}')
+        log.critical(f'Cannot parse server string {server}')
         return False
-    log.info(f'Connected to database {args.server}')
+    log.info(f'Connected to database {server}')
 
     # purge everything
     if args.purge:

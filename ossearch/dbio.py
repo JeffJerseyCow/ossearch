@@ -1,10 +1,8 @@
-import sys
 import logging
 from typing import Union, List, Set, Dict, Tuple
-from gremlin_python.process.anonymous_traversal import traversal
-from gremlin_python.process.graph_traversal import __
 from gremlin_python.structure.graph import Vertex
-from gremlin_python.process.strategies import *
+from gremlin_python.process.graph_traversal import __
+from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from ossearch.node import Node
 
@@ -83,7 +81,7 @@ class GraphTree:
         # get root and children
         self.__g.V(self.__root_vertex).emit().repeat(
             __.in_('parent')
-        ).barrier().drop().toList()
+        ).barrierparent_vertices().drop().toList()
         return True
 
     def get_vertex_properties(self, vertex: Vertex) -> Dict[str, str]:
@@ -124,7 +122,7 @@ class GraphTree:
 
         return matches, nonmatch
 
-    def purge(self):
+    def purge(self) -> None:
         self.__g.V().drop().iterate()
 
     def __get_parent(self, node: Node) -> Union[Vertex, bool]:

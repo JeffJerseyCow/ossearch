@@ -1,5 +1,4 @@
 import os
-import time
 import logging
 import socket
 from argparse import Namespace
@@ -15,15 +14,16 @@ def search_main(args: Namespace) -> bool:
     gt = GraphTree()
 
     # connect to tinkerpop server
+    server = f'{args.address}:{args.port}'
     try:
-        gt.connect(args.server)
+        gt.connect(server)
     except ConnectionRefusedError:
-        log.critical(f'Cannot connect to server {args.server}')
+        log.critical(f'Cannot connect to server {server}')
         return False
     except socket.gaierror:
-        log.critical(f'Cannot parse server string {args.server}')
+        log.critical(f'Cannot parse server string {server}')
         return False
-    log.info(f'Connected to database {args.server}')
+    log.info(f'Connected to database {server}')
 
     # check directories exists
     for directory in args.directories:
@@ -40,7 +40,7 @@ def search_main(args: Namespace) -> bool:
         # build node list
         file_nodes = [Node(name=node['name'], path=node['path'], parent=node['parent'], type=node['type'],
                       digest=node['digest'])
-                      for node in walk_files(path, not args.include_null)]
+                      for node in walk_files(path, not args.include_bad)]
 
         parents = gt.get_parents(file_nodes)
         if len(parents) < 1:

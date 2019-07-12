@@ -1,10 +1,10 @@
 import sys
 import logging
-from ossearch.parser import get_parser
-from ossearch.utils import load_config
 from ossearch.build import build_main
+from ossearch.parser import get_parser
 from ossearch.search import search_main
 from ossearch.delete import delete_main
+from ossearch.utils import load_config, load_database
 
 
 log = logging.getLogger('ossearch')
@@ -17,6 +17,13 @@ def main() -> bool:
     # create parser
     parser = get_parser(config)
     args = parser.parse_args()
+
+    # load database
+    if args.address == 'localhost' and args.port == 8182:
+        container, volume = load_database()
+        if not container or not volume:
+            log.critical('Cannot start ossearch database')
+            return False
 
     try:
         # select action

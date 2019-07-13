@@ -36,7 +36,7 @@ def delete_main(args: Namespace) -> bool:
     except TypeError:
         log.critical('Please provide directory to delete')
         return False
-    
+
     # check root node exists
     r = Node(name=path, path=path)
     if not gt.set_root(r):

@@ -40,7 +40,7 @@ def delete_main(args: Namespace) -> bool:
     # check root node exists
     r = Node(name=path, path=path)
     if not gt.set_root(r):
-        log.error(f'Root node {path} doesn\'t exists in database')
+        log.error(f'Root node {path} doesn\'t exist in database')
         return False
 
     # delete tree from root down

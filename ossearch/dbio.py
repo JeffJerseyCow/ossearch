@@ -81,7 +81,7 @@ class GraphTree:
         # get root and children
         self.__g.V(self.__root_vertex).emit().repeat(
             __.in_('parent')
-        ).barrierparent_vertices().drop().toList()
+        ).barrier().drop().toList()
         return True
 
     def get_vertex_properties(self, vertex: Vertex) -> Dict[str, str]:

@@ -1,4 +1,5 @@
 import logging
+import requests
 import ossearch
 import docker
 import time
@@ -17,14 +18,20 @@ def load_config() -> Dict[str, str]:
 
 def load_database() -> Union[bool, Volume, Container]:
     client = docker.from_env()
+    try:
+        info = client.info()['ServerVersion']
+        log.info(f'Connected to docker server {info}')
+    except requests.exceptions.ConnectionError:
+        log.critical('Cannot connect to docker server')
+        return False, False
 
     volume = get_volume(client)
     if not volume:
-        return False
+        return False, False
 
     container = get_container(client)
     if not container:
-        return False
+        return False, False
 
     wait_server(container)
 
@@ -52,7 +59,7 @@ def get_container(client: DockerClient) -> Union[bool, Container]:
         container = client.containers.get('ossearch')
         log.info(f'Database ossearch found')
     except docker.errors.NotFound:
-        print(f'Creating ossearch database')
+        log.info(f'Creating ossearch database')
         container = client.containers.run('jeffjerseycow/tinkerpop:3.4.2',
                                           name='ossearch',
                                           mounts=[
@@ -70,7 +77,7 @@ def get_container(client: DockerClient) -> Union[bool, Container]:
 def wait_server(container: Container) -> None:
     # check running
     if container.status != 'running':
-        print(f'Starting ossearch database')
+        log.info(f'Starting ossearch database')
         container.start()
         print('Waiting 5 seconds for server to start')
         time.sleep(5)

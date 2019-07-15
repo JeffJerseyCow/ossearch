@@ -18,6 +18,11 @@ def main() -> bool:
     parser = get_parser(config)
     args = parser.parse_args()
 
+    # check command
+    if args.command is None:
+        parser.print_usage()
+        return False
+
     # load database
     if args.address == 'localhost' and args.port == 8182:
         container, volume = load_database()

@@ -1,6 +1,6 @@
 import os
 import logging
-import socket
+import sys
 from argparse import Namespace
 from ossearch.dbio import GraphTree
 from ossearch.node import Node
@@ -15,15 +15,8 @@ def search_main(args: Namespace) -> bool:
 
     # connect to tinkerpop server
     server = f'{args.address}:{args.port}'
-    try:
-        gt.connect(server)
-    except ConnectionRefusedError:
-        log.critical(f'Cannot connect to server {server}')
-        return False
-    except socket.gaierror:
-        log.critical(f'Cannot parse server string {server}')
-        return False
-    log.info(f'Connected to database {server}')
+    if not gt.connect(server):
+        log.critical(f'Cannot connect to {server}')
 
     # check directories exists
     for directory in args.directories:
@@ -36,6 +29,7 @@ def search_main(args: Namespace) -> bool:
     # iterate each passed directory
     for directory in args.directories:
         path = os.path.realpath(directory)
+        print(f'Searching {path}')
 
         # build node list
         file_nodes = [Node(name=node['name'], path=node['path'], parent=node['parent'], type=node['type'],
@@ -65,8 +59,10 @@ def search_main(args: Namespace) -> bool:
             percentage_average = (percentage_database_file + percentage_file_database) / 2
 
             if percentage_average >= args.threshold:
-                print(f'Found candidate {root_path}')
-                print(f'\t{percentage_average:.2f}% match')
-                print(f'\tReference: {path}')
+                print(f'Found candidate {root_path}', file=sys.stderr)
+                print(f'\t{percentage_average:.2f}% match', file=sys.stderr)
+                print(f'\tReference: {path}', file=sys.stderr)
 
+        print(f'Finished searching {path}')
+        
     return True

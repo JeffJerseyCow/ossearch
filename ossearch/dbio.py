@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Union, List, Set, Dict, Tuple
 from gremlin_python.structure.graph import Vertex
 from gremlin_python.process.graph_traversal import __
@@ -15,8 +16,25 @@ class GraphTree:
     __root_vertex = None
 
     def connect(self, server: str) -> bool:
-        self.__g = traversal().withRemote(DriverRemoteConnection(f'ws://{server}/gremlin', 'g'))
-        return True
+        attempts = 0
+
+        # wait for connection
+        while attempts < 5:
+
+            # success
+            try:
+                self.__g = traversal().withRemote(DriverRemoteConnection(f'ws://{server}/gremlin', 'g'))
+                print(f'Connected to database {server}' + ' ' * 20)
+                return True
+
+            # failure loop
+            except Exception:
+                backoff = 2 ** attempts
+                attempts += 1
+                print(f'Connecting to server {attempts}/5 -- waiting {backoff} second(s)', end='\r')
+                time.sleep(backoff)
+
+        return False
 
     def set_root(self, node: Node) -> bool:
         root_vertices = self.__g.V().has('directory', 'name', node.get_name()).toList()

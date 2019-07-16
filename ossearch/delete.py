@@ -14,15 +14,8 @@ def delete_main(args: Namespace) -> bool:
 
     # connect to tinkerpop server
     server = f'{args.address}:{args.port}'
-    try:
-        gt.connect(server)
-    except ConnectionRefusedError:
-        log.critical(f'Cannot connect to server {server}')
-        return False
-    except socket.gaierror:
-        log.critical(f'Cannot parse server string {server}')
-        return False
-    log.info(f'Connected to database {server}')
+    if not gt.connect(server):
+        log.critical(f'Cannot connect to {server}')
 
     # purge everything
     if args.purge:

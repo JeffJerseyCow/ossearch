@@ -13,16 +13,10 @@ log = logging.getLogger('ossearch')
 def build_main(args: Namespace) -> bool:
     gt = GraphTree()
 
+    # connect to tinkerpop server
     server = f'{args.address}:{args.port}'
-    try:
-        gt.connect(server)
-    except ConnectionRefusedError:
-        log.critical(f'Cannot connect to server {server}')
-        return False
-    except socket.gaierror:
-        log.critical(f'Cannot parse server string {server}')
-        return False
-    log.info(f'Connected to database {server}')
+    if not gt.connect(server):
+        log.critical(f'Cannot connect to {server}')
 
     # check directory exists
     path = os.path.realpath(args.directory)

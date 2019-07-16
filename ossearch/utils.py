@@ -79,7 +79,5 @@ def wait_server(container: Container) -> None:
     if container.status != 'running':
         log.info(f'Starting ossearch database')
         container.start()
-        print('Waiting 5 seconds for server to start')
-        time.sleep(5)
 
     return

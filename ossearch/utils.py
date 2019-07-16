@@ -59,7 +59,7 @@ def get_container(client: DockerClient) -> Union[bool, Container]:
         container = client.containers.get('ossearch')
         log.info(f'Database ossearch found')
     except docker.errors.NotFound:
-        log.info(f'Creating ossearch database')
+        print('Creating ossearch database, please wait')
         container = client.containers.run('jeffjerseycow/tinkerpop:3.4.2',
                                           name='ossearch',
                                           mounts=[

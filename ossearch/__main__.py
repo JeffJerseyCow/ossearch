@@ -11,26 +11,27 @@ log = logging.getLogger('ossearch')
 
 
 def main() -> bool:
-    # load config
-    config = load_config()
+    try:
 
-    # create parser
-    parser = get_parser(config)
-    args = parser.parse_args()
+        # load config
+        config = load_config()
 
-    # check command
-    if args.command is None:
-        parser.print_usage()
-        return False
+        # create parser
+        parser = get_parser(config)
+        args = parser.parse_args()
 
-    # load database
-    if args.address == 'localhost' and args.port == 8182:
-        container, volume = load_database()
-        if not container or not volume:
-            log.critical('Cannot start ossearch database')
+        # check command
+        if args.command is None:
+            parser.print_usage()
             return False
 
-    try:
+        # load database
+        if args.address == 'localhost' and args.port == 8182:
+            container, volume = load_database()
+            if not container or not volume:
+                log.critical('Cannot start ossearch database')
+                return False
+
         # select action
         if args.command == 'build':
             return build_main(args)

@@ -88,6 +88,8 @@ class GraphTree:
 
     def add_edges(self, vertices: Dict[str, Tuple[Vertex, str, bool]]) -> bool:
         for path, tup in vertices.items():
+
+            # check f current vertex is the root vertex
             if not tup[2]:
                 self.__g.V(tup[0]).addE('parent').to(
                     vertices[tup[1]][0]

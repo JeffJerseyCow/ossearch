@@ -4,7 +4,7 @@ from ossearch.build import build_main
 from ossearch.parser import get_parser
 from ossearch.search import search_main
 from ossearch.delete import delete_main
-from ossearch.utils import load_config, load_database
+from ossearch.utils import load_database
 
 
 log = logging.getLogger('ossearch')
@@ -13,11 +13,8 @@ log = logging.getLogger('ossearch')
 def main() -> bool:
     try:
 
-        # load config
-        config = load_config()
-
         # create parser
-        parser = get_parser(config)
+        parser = get_parser()
         args = parser.parse_args()
 
         # check command

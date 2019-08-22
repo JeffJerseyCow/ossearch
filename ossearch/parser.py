@@ -1,4 +1,5 @@
 import argparse
+import pkg_resources
 from typing import Dict
 
 
@@ -33,10 +34,12 @@ def add_delete_args(subparser: argparse.ArgumentParser) -> bool:
     return True
 
 
-def get_parser(config: Dict[str, str]) -> argparse.ArgumentParser:
+def get_parser() -> argparse.ArgumentParser:
+    version = pkg_resources.require('ossearch')[0].version
+
     # create parser
     parser = argparse.ArgumentParser('ossearch')
-    parser.add_argument('--version', action='version', version=f'ossearch {config["version"]}')
+    parser.add_argument('--version', action='version', version=f'ossearch {version}')
     subparser = parser.add_subparsers(dest='command')
 
     # additional arguments

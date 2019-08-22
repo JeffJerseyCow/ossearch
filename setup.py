@@ -1,9 +1,12 @@
-from ossearch.utils import load_config
+import os
 from setuptools import setup, find_packages
+
+with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
+    version = f.read().strip()
 
 setup(
     name='ossearch',
-    version=load_config()['version'],
+    version=version,
     description='searches for open source projects within directories',
     author='JeffJerseyCow',
     author_email='jeffjerseycow@gmail.com',

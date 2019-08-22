@@ -12,10 +12,6 @@ from typing import Dict, Union
 log = logging.getLogger('ossearch')
 
 
-def load_config() -> Dict[str, str]:
-    return {'version': ossearch.VERSION}
-
-
 def load_database() -> Union[bool, Volume, Container]:
     client = docker.from_env()
     try:
